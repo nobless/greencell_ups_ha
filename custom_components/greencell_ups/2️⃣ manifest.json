@@ -1,0 +1,9 @@
+{
+  "domain": "greencell",
+  "name": "Greencell UPS",
+  "version": "1.0.0",
+  "requirements": ["requests"],
+  "dependencies": [],
+  "codeowners": ["@nobless"],
+  "documentation": "https://github.com/nobless/greencell_ups_ha"
+}
