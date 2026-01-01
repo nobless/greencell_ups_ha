@@ -1,0 +1,9 @@
+{
+  "name": "Greencell UPS",
+  "version": "1.0.0",
+  "content_in_root": false,
+  "domains": ["sensor"],
+  "zip_release": true,
+  "filename": "custom_components/greencell_ups",
+  "domain": "greencell_ups"
+}
