@@ -1,5 +1,5 @@
 {
-  "domain": "greencell",
+  "domain": "greencell_ups",
   "name": "Greencell UPS",
   "version": "1.0.0",
   "requirements": ["requests"],
