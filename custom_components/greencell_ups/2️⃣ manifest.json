@@ -1,9 +1,14 @@
 {
   "domain": "greencell_ups",
   "name": "Greencell UPS",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "requirements": ["requests"],
   "dependencies": [],
   "codeowners": ["@nobless"],
+  "requirements": [
+    "requests"
+  ],
+  "config_flow": true,
+  "homekit": {},
   "documentation": "https://github.com/nobless/greencell_ups_ha"
 }
