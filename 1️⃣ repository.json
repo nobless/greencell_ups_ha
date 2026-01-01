@@ -2,7 +2,7 @@
   "name": "Greencell UPS",
   "content_in_root": false,
   "homeassistant": "2021.12.0",
-  "filename": "custom_components/greencell",
+  "filename": "custom_components/greencell_ups",
   "description": "Greencell UPS integration for Home Assistant",
   "zip_release": true,
   "release_api": "https://api.github.com/repos/nobless/greencell_ups_ha/releases",
