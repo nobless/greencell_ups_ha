@@ -11,8 +11,6 @@ if TYPE_CHECKING:  # Only import Home Assistant types when available
 
 async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool:
     # Import lazily so tests can run without Home Assistant installed
-    from homeassistant.config_entries import async_reload_entry
-
     from .coordinator import GreencellCoordinator
 
     coordinator = GreencellCoordinator(hass, entry)
@@ -20,7 +18,11 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
+    entry.async_on_unload(
+        entry.add_update_listener(
+            lambda hass, e: hass.config_entries.async_reload(e.entry_id)
+        )
+    )
     return True
 
 

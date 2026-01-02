@@ -127,3 +127,51 @@ class GreencellApi:
                 )
 
         return await self._with_session(_execute)
+
+    async def toggle_beeper(self):
+        """Toggle UPS beeper on/off."""
+        return await self._send_command("beeperToggleOrder")
+
+    async def shutdown(self):
+        """Send shutdown order; UPS goes to sleep until wake-up."""
+        return await self._send_command("shutdownOrder")
+
+    async def wake_up(self):
+        """Wake the UPS after shutdown."""
+        return await self._send_command("wakeUpOrder")
+
+    async def short_test(self):
+        """Run a short UPS self-test (~10s)."""
+        return await self._send_command("shortTestOrder")
+
+    async def long_test(self):
+        """Run a long battery discharge test."""
+        return await self._send_command("longTestOrder")
+
+    async def cancel_test(self):
+        """Cancel an active discharge/self-test cycle."""
+        return await self._send_command("cancelTestOrder")
+
+    async def _send_command(self, action: str):
+        async def _execute(session):
+            if not self._token:
+                await self.login(session=session)
+
+            payload = {"action": action, "args": {}}
+            try:
+                return await self._request(
+                    "POST",
+                    "/api/commands",
+                    json=payload,
+                    session=session,
+                )
+            except GreencellAuthError:
+                await self.login(session=session)
+                return await self._request(
+                    "POST",
+                    "/api/commands",
+                    json=payload,
+                    session=session,
+                )
+
+        return await self._with_session(_execute)
