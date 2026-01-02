@@ -1,6 +1,11 @@
-from datetime import timedelta
 import logging
+from datetime import timedelta
+from typing import Any
 
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.const import CONF_HOST, CONF_PASSWORD
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
@@ -12,10 +17,11 @@ from .api import GreencellApi, GreencellApiError
 _LOGGER = logging.getLogger(__name__)
 
 class GreencellCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, config_entry):
+    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry):
         self.api = GreencellApi(
-            config_entry.data["host"],
-            config_entry.data["password"],
+            config_entry.data[CONF_HOST],
+            config_entry.data[CONF_PASSWORD],
+            session=async_get_clientsession(hass),
         )
         self.specification = None
 
@@ -26,7 +32,7 @@ class GreencellCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=UPDATE_INTERVAL),
         )
 
-    async def _async_update_data(self):
+    async def _async_update_data(self) -> dict[str, Any]:
         try:
             data = await self.api.fetch_status()
             if self.specification is None:

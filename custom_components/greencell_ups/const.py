@@ -1,8 +1,7 @@
-DOMAIN = "greencell_ups"
-PLATFORMS = ["sensor", "binary_sensor"]
-MANUFACTURER = "Green Cell"
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, Platform
 
-CONF_HOST = "host"
-CONF_PASSWORD = "password"
+DOMAIN = "greencell_ups"
+PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR]
+MANUFACTURER = "Green Cell"
 
 UPDATE_INTERVAL = 30  # seconds

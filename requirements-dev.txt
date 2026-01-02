@@ -1,2 +1,4 @@
+aiohttp
+async-timeout
 pytest
 pytest-asyncio

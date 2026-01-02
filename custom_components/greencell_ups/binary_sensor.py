@@ -1,6 +1,16 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from homeassistant.components.binary_sensor import BinarySensorEntity
+from homeassistant.const import CONF_HOST
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
 from .const import DOMAIN, MANUFACTURER
+
+if TYPE_CHECKING:
+    from .coordinator import GreencellCoordinator
 
 BINARY_SENSORS = {
     "utilityFail": "Utility Fail",
@@ -21,20 +31,22 @@ async def async_setup_entry(hass, entry, async_add_entities):
         GreencellBinarySensor(
             coordinator,
             entry.entry_id,
-            entry.data["host"],
+            entry.data[CONF_HOST],
             key,
             name,
         )
         for key, name in BINARY_SENSORS.items()
     )
 
-class GreencellBinarySensor(CoordinatorEntity, BinarySensorEntity):
+class GreencellBinarySensor(CoordinatorEntity["GreencellCoordinator"], BinarySensorEntity):
+    _attr_has_entity_name = True
+
     def __init__(self, coordinator, entry_id, host, key, name):
         super().__init__(coordinator)
         self._key = key
         self._entry_id = entry_id
         self._host = host
-        self._attr_name = f"Greencell {name}"
+        self._attr_name = name
         self._attr_unique_id = f"greencell_{entry_id}_{key}"
 
     @property
@@ -43,16 +55,14 @@ class GreencellBinarySensor(CoordinatorEntity, BinarySensorEntity):
         return bool(data.get(self._key))
 
     @property
-    def device_info(self):
-        info = {
-            "identifiers": {(DOMAIN, self._entry_id)},
-            "name": f"Greencell UPS ({self._host})",
-            "manufacturer": MANUFACTURER,
-        }
+    def device_info(self) -> DeviceInfo:
         spec = getattr(self.coordinator, "specification", None) or {}
         model = spec.get("name") or (
             ", ".join(spec["codes"]) if spec.get("codes") else None
         )
-        if model:
-            info["model"] = model
-        return info
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._entry_id)},
+            name=f"Greencell UPS ({self._host})",
+            manufacturer=MANUFACTURER,
+            model=model,
+        )
