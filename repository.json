@@ -1,6 +1,6 @@
 {
   "name": "Greencell UPS",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Custom Home Assistant integration for GreenCell UPS devices and sensors",
   "content_in_root": false,
   "domains": ["sensor"],
