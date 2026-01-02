@@ -30,27 +30,28 @@ class GreencellApi:
         if self._token:
             headers["Authorization"] = f"Bearer {self._token}"
 
-        async with aiohttp.ClientSession() as session:
-            async with async_timeout.timeout(10):
-                async with session.request(
-                    method,
-                    f"{self._host}{path}",
-                    json=json,
-                    headers=headers,
-                ) as resp:
-                    if resp.status == 401:
-                        self._token = None
-                        raise GreencellAuthError("Unauthorized")
-                    try:
-                        resp.raise_for_status()
-                    except aiohttp.ClientResponseError as err:
-                        raise GreencellRequestError(
-                            f"HTTP error {err.status}: {err.message}"
-                        ) from err
-                    try:
-                        return await resp.json()
-                    except Exception as err:
-                        raise GreencellResponseError("Invalid JSON response") from err
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with async_timeout.timeout(10):
+                    async with session.request(
+                        method,
+                        f"{self._host}{path}",
+                        json=json,
+                        headers=headers,
+                    ) as resp:
+                        if resp.status == 401:
+                            self._token = None
+                            raise GreencellAuthError("Unauthorized")
+                        try:
+                            resp.raise_for_status()
+                        except aiohttp.ClientResponseError as err:
+                            raise GreencellRequestError(
+                                f"HTTP error {err.status}: {err.message}"
+                            ) from err
+                        try:
+                            return await resp.json()
+                        except Exception as err:
+                            raise GreencellResponseError("Invalid JSON response") from err
         except asyncio.TimeoutError as err:
             raise GreencellRequestError("Request timed out") from err
         except aiohttp.ClientError as err:

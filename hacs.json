@@ -1,7 +1,4 @@
 {
     "name": "GreenCell UPS",
-    "description": "Custom Home Assistant integration for GreenCell UPS devices and sensors",
-    "render_readme": true,
-    "topics": ["integration", "home-assistant", "hacs"],
-    "domains": ["sensor"]
+    "render_readme": true
 }
