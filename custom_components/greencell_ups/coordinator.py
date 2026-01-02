@@ -7,7 +7,7 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .const import DOMAIN, UPDATE_INTERVAL
-from .api import GreencellApi
+from .api import GreencellApi, GreencellApiError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -17,6 +17,7 @@ class GreencellCoordinator(DataUpdateCoordinator):
             config_entry.data["host"],
             config_entry.data["password"],
         )
+        self.specification = None
 
         super().__init__(
             hass,
@@ -27,6 +28,12 @@ class GreencellCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self):
         try:
-            return await self.api.fetch_status()
-        except Exception as err:
+            data = await self.api.fetch_status()
+            if self.specification is None:
+                try:
+                    self.specification = await self.api.fetch_specification()
+                except Exception as err:
+                    _LOGGER.debug("Failed to fetch specification: %s", err)
+            return data
+        except GreencellApiError as err:
             raise UpdateFailed(err)

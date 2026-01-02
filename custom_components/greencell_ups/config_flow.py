@@ -1,7 +1,12 @@
 from homeassistant import config_entries
 import voluptuous as vol
 from .const import DOMAIN
-from .api import GreencellApi
+from .api import (
+    GreencellApi,
+    GreencellAuthError,
+    GreencellRequestError,
+    GreencellResponseError,
+)
 
 class GreencellConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
@@ -16,7 +21,9 @@ class GreencellConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     title=user_input["host"],
                     data=user_input,
                 )
-            except Exception:
+            except GreencellAuthError:
+                return self.async_abort(reason="invalid_auth")
+            except (GreencellRequestError, GreencellResponseError):
                 return self.async_abort(reason="cannot_connect")
 
         return self.async_show_form(

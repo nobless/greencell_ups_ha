@@ -1,33 +1,69 @@
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from .const import DOMAIN
+from .const import DOMAIN, MANUFACTURER
 
 SENSORS = {
     "inputVoltage": ("Input Voltage", "V"),
+    "inputVoltageFault": ("Input Voltage Fault", "V"),
     "outputVoltage": ("Output Voltage", "V"),
     "batteryVoltage": ("Battery Voltage", "V"),
+    "batteryVoltageNominal": ("Battery Voltage Nominal", "V"),
+    "batteryVoltageHighNominal": ("Battery Voltage High Nominal", "V"),
+    "batteryVoltageLowNominal": ("Battery Voltage Low Nominal", "V"),
     "batteryLevel": ("Battery Level", "%"),
     "temperature": ("Temperature", "°C"),
     "load": ("Load", "%"),
     "inputFrequency": ("Input Frequency", "Hz"),
+    "inputFrequencyNominal": ("Input Frequency Nominal", "Hz"),
+    "inputVoltageNominal": ("Input Voltage Nominal", "V"),
+    "inputCurrentNominal": ("Input Current Nominal", "A"),
+    "batteryNumberNominal": ("Battery Number Nominal", None),
+    "status": ("Status", None),
+    "errno": ("Error Code", None),
+    "reg": ("Register", None),
 }
 
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = [
-        GreencellSensor(coordinator, key, name, unit)
+        GreencellSensor(
+            coordinator,
+            entry.entry_id,
+            entry.data["host"],
+            key,
+            name,
+            unit,
+        )
         for key, (name, unit) in SENSORS.items()
     ]
     async_add_entities(entities)
 
 class GreencellSensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator, key, name, unit):
+    def __init__(self, coordinator, entry_id, host, key, name, unit):
         super().__init__(coordinator)
         self._key = key
+        self._entry_id = entry_id
+        self._host = host
         self._attr_name = f"Greencell {name}"
         self._attr_native_unit_of_measurement = unit
-        self._attr_unique_id = f"greencell_{key}"
+        self._attr_unique_id = f"greencell_{entry_id}_{key}"
 
     @property
     def native_value(self):
-        return self.coordinator.data.get(self._key)
+        data = self.coordinator.data or {}
+        return data.get(self._key)
+
+    @property
+    def device_info(self):
+        info = {
+            "identifiers": {(DOMAIN, self._entry_id)},
+            "name": f"Greencell UPS ({self._host})",
+            "manufacturer": MANUFACTURER,
+        }
+        spec = getattr(self.coordinator, "specification", None) or {}
+        model = spec.get("name") or (
+            ", ".join(spec["codes"]) if spec.get("codes") else None
+        )
+        if model:
+            info["model"] = model
+        return info
