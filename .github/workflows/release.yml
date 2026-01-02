@@ -1,0 +1,22 @@
+name: Build release asset
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create release zip
+        run: |
+          zip -r greencell_ups.zip custom_components/greencell_ups
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: greencell_ups.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
