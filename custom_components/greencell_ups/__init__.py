@@ -1,6 +1,7 @@
 """Greencell integration"""
-from homeassistant.const import CONF_PASSWORD, CONF_HOST
 from homeassistant.helpers import discovery
+
+from .const import DOMAIN
 
 async def async_setup(hass, config):
     conf = config.get(DOMAIN)
