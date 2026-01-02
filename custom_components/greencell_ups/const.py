@@ -1,6 +1,7 @@
-DOMAIN = "greencell"
-CONF_PASSWORD = "password"
-CONF_HOST = "host"
+DOMAIN = "greencell_ups"
+PLATFORMS = ["sensor", "binary_sensor"]
 
-DEFAULT_NAME = "Greencell UPS"
-UPDATE_INTERVAL = 30
+CONF_HOST = "host"
+CONF_PASSWORD = "password"
+
+UPDATE_INTERVAL = 30  # seconds
