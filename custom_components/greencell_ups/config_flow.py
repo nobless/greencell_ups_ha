@@ -1,17 +1,30 @@
-import voluptuous as vol
 from homeassistant import config_entries
-from .const import DOMAIN, CONF_HOST, CONF_PASSWORD
+import voluptuous as vol
+from .const import DOMAIN
+from .api import GreencellApi
 
-class GreencellFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
-    VERSION = 1
-
+class GreencellConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
-        errors = {}
         if user_input is not None:
-            return self.async_create_entry(title="Greencell UPS", data=user_input)
+            api = GreencellApi(
+                user_input["host"],
+                user_input["password"],
+            )
+            try:
+                await api.login()
+                return self.async_create_entry(
+                    title=user_input["host"],
+                    data=user_input,
+                )
+            except Exception:
+                return self.async_abort(reason="cannot_connect")
 
-        data_schema = vol.Schema({
-            vol.Required(CONF_HOST): str,
-            vol.Required(CONF_PASSWORD): str
-        })
-        return self.async_show_form(step_id="user", data_schema=data_schema, errors=errors)
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("host"): str,
+                    vol.Required("password"): str,
+                }
+            ),
+        )
