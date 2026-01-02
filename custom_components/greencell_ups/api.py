@@ -22,11 +22,18 @@ class GreencellResponseError(GreencellApiError):
 
 
 class GreencellApi:
-    def __init__(self, host: str, password: str, session: Optional[aiohttp.ClientSession] = None):
+    def __init__(
+        self,
+        host: str,
+        password: str,
+        session: Optional[aiohttp.ClientSession] = None,
+        verify_ssl: bool = False,
+    ):
         self._host = host.rstrip("/")
         self._password = password
         self._token = None
         self._session = session
+        self._verify_ssl = verify_ssl
 
     async def _request(self, method, path, json=None, session=None):
         headers = {}
@@ -46,6 +53,7 @@ class GreencellApi:
                     f"{self._host}{path}",
                     json=json,
                     headers=headers,
+                    ssl=self._verify_ssl,
                 ) as resp:
                     if resp.status == 401:
                         self._token = None

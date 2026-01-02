@@ -11,7 +11,7 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/nobless/greencell_ups_ha",
   "loggers": ["custom_components.greencell_ups"],
-  "requirements": [],
+  "requirements": ["getmac>=0.9.4"],
   "ssdp": [],
   "version": "3.0.3",
   "zeroconf": []
