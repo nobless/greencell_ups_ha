@@ -1,6 +1,7 @@
 {
   "domain": "greencell_ups",
   "name": "Greencell UPS",
+  "after_dependencies": [],
   "codeowners": ["@nobless"],
   "config_flow": true,
   "dependencies": [],
@@ -8,9 +9,11 @@
   "homekit": {},
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/nobless/greencell_ups_ha",
+  "integration_type": "device",
+  "loggers": ["custom_components.greencell_ups"],
   "requirements": [],
   "ssdp": [],
-  "version": "v2.0.0",
+  "version": "3.0.0",
   "zeroconf": []
 
 }
