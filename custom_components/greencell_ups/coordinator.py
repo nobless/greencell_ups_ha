@@ -1,10 +1,15 @@
 from datetime import timedelta
+import logging
+
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
 )
+
 from .const import DOMAIN, UPDATE_INTERVAL
 from .api import GreencellApi
+
+_LOGGER = logging.getLogger(__name__)
 
 class GreencellCoordinator(DataUpdateCoordinator):
     def __init__(self, hass, config_entry):
@@ -15,7 +20,7 @@ class GreencellCoordinator(DataUpdateCoordinator):
 
         super().__init__(
             hass,
-            logger=None,
+            _LOGGER, 
             name=DOMAIN,
             update_interval=timedelta(seconds=UPDATE_INTERVAL),
         )
