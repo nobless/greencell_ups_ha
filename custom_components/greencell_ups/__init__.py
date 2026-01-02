@@ -1,26 +1,17 @@
-"""Greencell integration"""
-
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from .const import DOMAIN, PLATFORMS
+from .coordinator import GreencellCoordinator
 
-from homeassistant.const import CONF_PASSWORD, CONF_HOST
-from homeassistant.helpers import discovery
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
+    coordinator = GreencellCoordinator(hass, entry)
+    await coordinator.async_config_entry_first_refresh()
 
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    return True
 
-
-from .const import PLATFORMS
-from .coordinator import SnmpCoordinator
-
-async def async_setup(hass, config):
-    conf = config.get(DOMAIN)
-    if conf is None:
-        return True
-
-    hass.data[DOMAIN] = conf
-
-    hass.async_create_task(
-        discovery.async_load_platform(hass, "sensor", DOMAIN, {}, config)
-    )
-
+async def async_unload_entry(hass, entry):
+    await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    hass.data[DOMAIN].pop(entry.entry_id)
     return True
