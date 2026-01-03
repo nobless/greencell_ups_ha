@@ -17,6 +17,7 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
 )
+from urllib.parse import urlparse
 
 from .const import DEFAULT_SCAN_INTERVAL, DEFAULT_VERIFY_SSL, DOMAIN, MIN_SCAN_INTERVAL
 from .api import GreencellApi, GreencellApiError
@@ -108,7 +109,14 @@ class GreencellCoordinator(DataUpdateCoordinator):
             return None
 
         def _lookup():
-            return get_mac_address(ip=self.host)
+            return get_mac_address(ip=self._host_for_mac_lookup())
 
         mac = await self.hass.async_add_executor_job(_lookup)
         return self._normalize_mac(mac)
+
+    def _host_for_mac_lookup(self) -> str:
+        """Normalize host for MAC lookup (strip scheme/port)."""
+        parsed = urlparse(self.host)
+        if parsed.scheme:
+            return parsed.hostname or self.host
+        return self.host

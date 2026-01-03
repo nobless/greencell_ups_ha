@@ -20,25 +20,51 @@ async def async_get_config_entry_diagnostics(
 ) -> dict[str, Any]:
     coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
 
-    coordinator_data = coordinator.data if coordinator else None
-    specification = getattr(coordinator, "specification", None) if coordinator else None
+    def _safe_redact(value: Any) -> Any:
+        try:
+            return redact(value or {}, TO_REDACT)
+        except Exception:
+            return value
+
+    def _safe_interval_seconds(coordinator_obj: Any) -> float | None:
+        try:
+            interval = getattr(coordinator_obj, "update_interval", None)
+            return interval.total_seconds() if interval else None
+        except Exception:
+            return None
+
+    def _safe_bool(attr: str) -> bool | None:
+        try:
+            return getattr(coordinator, attr)
+        except Exception:
+            return None
+
+    coordinator_data = None
+    specification = None
+    try:
+        coordinator_data = coordinator.data if coordinator else None
+    except Exception:
+        coordinator_data = None
+    try:
+        specification = getattr(coordinator, "specification", None) if coordinator else None
+    except Exception:
+        specification = None
+
     diagnostics_data: dict[str, Any] = {
         "entry": {
             "title": entry.title,
             "domain": entry.domain,
             "entry_id": entry.entry_id,
-            "data": redact(entry.data, TO_REDACT),
+            "data": _safe_redact(entry.data),
             "options": entry.options,
             "version": entry.version,
         },
         "coordinator": {
-            "last_update_success": coordinator.last_update_success if coordinator else None,
-            "update_interval": coordinator.update_interval.total_seconds()
-            if coordinator and coordinator.update_interval
-            else None,
+            "last_update_success": _safe_bool("last_update_success"),
+            "update_interval": _safe_interval_seconds(coordinator),
         },
-        "data": redact(coordinator_data or {}, TO_REDACT),
-        "specification": redact(specification or {}, TO_REDACT),
+        "data": _safe_redact(coordinator_data),
+        "specification": _safe_redact(specification),
     }
 
     return diagnostics_data

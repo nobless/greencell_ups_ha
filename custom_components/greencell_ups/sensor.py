@@ -6,6 +6,7 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.const import CONF_HOST
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, MANUFACTURER
@@ -25,6 +26,7 @@ SENSORS = {
         "unit": "V",
         "device_class": SensorDeviceClass.VOLTAGE,
         "icon": "mdi:flash-alert",
+        "entity_category": EntityCategory.DIAGNOSTIC,
     },
     "outputVoltage": {
         "name": "Output Voltage",
@@ -43,18 +45,21 @@ SENSORS = {
         "unit": "V",
         "device_class": SensorDeviceClass.VOLTAGE,
         "icon": "mdi:car-battery",
+        "entity_category": EntityCategory.DIAGNOSTIC,
     },
     "batteryVoltageHighNominal": {
         "name": "Battery Voltage High Nominal",
         "unit": "V",
         "device_class": SensorDeviceClass.VOLTAGE,
         "icon": "mdi:battery-positive",
+        "entity_category": EntityCategory.DIAGNOSTIC,
     },
     "batteryVoltageLowNominal": {
         "name": "Battery Voltage Low Nominal",
         "unit": "V",
         "device_class": SensorDeviceClass.VOLTAGE,
         "icon": "mdi:battery-negative",
+        "entity_category": EntityCategory.DIAGNOSTIC,
     },
     "batteryLevel": {
         "name": "Battery Level",
@@ -84,38 +89,45 @@ SENSORS = {
         "unit": "Hz",
         "device_class": SensorDeviceClass.FREQUENCY,
         "icon": "mdi:sine-wave",
+        "entity_category": EntityCategory.DIAGNOSTIC,
     },
     "inputVoltageNominal": {
         "name": "Input Voltage Nominal",
         "unit": "V",
         "device_class": SensorDeviceClass.VOLTAGE,
         "icon": "mdi:flash-outline",
+        "entity_category": EntityCategory.DIAGNOSTIC,
     },
     "inputCurrentNominal": {
         "name": "Input Current Nominal",
         "unit": "A",
         "device_class": SensorDeviceClass.CURRENT,
         "icon": "mdi:current-ac",
+        "entity_category": EntityCategory.DIAGNOSTIC,
     },
     "batteryNumberNominal": {
         "name": "Battery Number Nominal",
         "unit": None,
         "icon": "mdi:battery-plus",
+        "entity_category": EntityCategory.DIAGNOSTIC,
     },
     "status": {
         "name": "Status",
         "unit": None,
         "icon": "mdi:information",
+        "entity_category": EntityCategory.DIAGNOSTIC,
     },
     "errno": {
         "name": "Error Code",
         "unit": None,
         "icon": "mdi:alert-circle-outline",
+        "entity_category": EntityCategory.DIAGNOSTIC,
     },
     "reg": {
         "name": "Register",
         "unit": None,
         "icon": "mdi:code-brackets",
+        "entity_category": EntityCategory.DIAGNOSTIC,
     },
 }
 
@@ -145,6 +157,7 @@ class GreencellSensor(CoordinatorEntity["GreencellCoordinator"], SensorEntity):
         self._attr_native_unit_of_measurement = sensor_config["unit"]
         self._attr_icon = sensor_config.get("icon")
         self._attr_device_class = sensor_config.get("device_class")
+        self._attr_entity_category = sensor_config.get("entity_category")
         self._attr_unique_id = f"greencell_{entry_id}_{key}"
 
     @property
