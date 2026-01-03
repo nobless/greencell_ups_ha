@@ -67,6 +67,7 @@ class DummyResponse:
     def __init__(self, status, json_data):
         self.status = status
         self._json = json_data
+        self._text = None
 
     async def __aenter__(self):
         return self
@@ -86,6 +87,11 @@ class DummyResponse:
 
     async def json(self):
         return self._json
+
+    async def text(self):
+        if self._text is not None:
+            return self._text
+        return str(self._json)
 
 
 class DummySession:
@@ -204,3 +210,26 @@ async def test_shutdown_wakeup_short_test(monkeypatch):
     assert await api.long_test() == 1
     assert await api.cancel_test() == 1
     assert session.command_calls >= 5
+
+
+@pytest.mark.asyncio
+async def test_command_text_response(monkeypatch):
+    class TextDummy(DummyResponse):
+        def __init__(self, status, json_data, text_data):
+            super().__init__(status, json_data)
+            self._text = text_data
+
+    class TextSession(DummySession):
+        def request(self, method, url, json=None, headers=None):
+            path = url.replace("http://host", "")
+            if method == "POST" and path == "/api/login":
+                return DummyResponse(200, {"access_token": "tok"})
+            if method == "POST" and path == "/api/commands":
+                return TextDummy(200, {"unexpected": True}, "1")
+            return DummyResponse(404, {})
+
+    monkeypatch.setattr('aiohttp.ClientSession', lambda: TextSession())
+    api = GreencellApi("http://host", "pw")
+    api._token = "tok"
+    result = await api.toggle_beeper()
+    assert result == 1

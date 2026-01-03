@@ -35,7 +35,7 @@ class GreencellApi:
         self._session = session
         self._verify_ssl = verify_ssl
 
-    async def _request(self, method, path, json=None, session=None):
+    async def _request(self, method, path, json=None, session=None, expect_json=True):
         headers = {}
         if self._token:
             headers["Authorization"] = f"Bearer {self._token}"
@@ -64,10 +64,20 @@ class GreencellApi:
                         raise GreencellRequestError(
                             f"HTTP error {err.status}: {err.message}"
                         ) from err
-                    try:
-                        return await resp.json()
-                    except Exception as err:
-                        raise GreencellResponseError("Invalid JSON response") from err
+                    if expect_json:
+                        try:
+                            return await resp.json()
+                        except Exception as err:
+                            raise GreencellResponseError("Invalid JSON response") from err
+                    else:
+                        try:
+                            return await resp.json()
+                        except Exception:
+                            text = await resp.text()
+                            stripped = text.strip()
+                            if stripped.isdigit():
+                                return int(stripped)
+                            return stripped or text
         except asyncio.TimeoutError as err:
             raise GreencellRequestError("Request timed out") from err
         except aiohttp.ClientError as err:
@@ -164,6 +174,7 @@ class GreencellApi:
                     "/api/commands",
                     json=payload,
                     session=session,
+                    expect_json=False,
                 )
             except GreencellAuthError:
                 await self.login(session=session)
@@ -172,6 +183,7 @@ class GreencellApi:
                     "/api/commands",
                     json=payload,
                     session=session,
+                    expect_json=False,
                 )
 
         return await self._with_session(_execute)
