@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 import pytest
 from unittest.mock import patch
 
@@ -11,56 +13,19 @@ from custom_components.greencell_ups.api import (
 )
 
 
-SAMPLE_STATUS = {
-    "inputVoltage": 228.5,
-    "inputVoltageFault": 228.5,
-    "outputVoltage": 228.5,
-    "load": 2,
-    "inputFrequency": 50.1,
-    "batteryVoltage": 13.1,
-    "temperature": -1,
-    "utilityFail": False,
-    "batteryLow": False,
-    "bypassBoost": False,
-    "failed": False,
-    "offline": True,
-    "testInProgress": False,
-    "shutdownActive": False,
-    "beeperOn": False,
-    "batteryLevel": 100,
-    "active": True,
-    "connected": True,
-    "status": 0,
-    "register": [],
-    "issues": [],
-    "errno": 0,
-    "inputVoltageNominal": 230,
-    "inputFrequencyNominal": 50,
-    "batteryVoltageNominal": 12,
-    "inputCurrentNominal": 3,
-    "batteryNumberNominal": 1,
-    "batteryVoltageHighNominal": 12.600000000000001,
-    "batteryVoltageLowNominal": 10.98,
-    "reg": 8,
-}
+SAMPLES_DIR = Path(__file__).parent / "samples"
 
-SAMPLE_SPEC = {
-    "name": "PowerProof/AiO",
-    "codes": [
-        "UPS02",
-        "UPS07"
-    ],
-    "inf": "",
-    "description": "\"UPS02=3A 12V\", \"UPS07=3A 12V\"",
-    "online": False,
-    "sinus": False,
-    "power": 480,
-    "capacity": 800,
-    "batteryType": 9,
-    "batteryNumber": 1,
-    "batteryVoltage": 12,
-    "current": 3
-}
+def _load_sample(name: str):
+    return json.loads((SAMPLES_DIR / name).read_text())
+
+SAMPLE_STATUS = _load_sample("current_parameters.json")
+SAMPLE_SPEC = _load_sample("specification.json")
+SAMPLE_TESTS = _load_sample("statistics_tests.json")
+SAMPLE_TEST_MEASUREMENTS = _load_sample("statistics_test_measurements.json")
+SAMPLE_EVENTS = _load_sample("statistics_events.json")
+SAMPLE_SCHEDULES = _load_sample("schedules.json")
+SAMPLE_SMTP = _load_sample("smtp_settings.json")
+SAMPLE_SMTP_VERIFY = _load_sample("smtp_verify.json")
 
 
 class DummyResponse:
@@ -99,6 +64,7 @@ class DummySession:
         self.get_calls = 0
         self.spec_calls = 0
         self.command_calls = 0
+        self.last_verify_payload = None
 
     async def __aenter__(self):
         return self
@@ -138,6 +104,19 @@ class DummySession:
             }:
                 return DummyResponse(200, 1)
             return DummyResponse(400, {})
+        if method == "GET" and path == "/api/statistics/tests":
+            return DummyResponse(200, SAMPLE_TESTS)
+        if method == "GET" and path == "/api/statistics/tests/test-long/measurements":
+            return DummyResponse(200, SAMPLE_TEST_MEASUREMENTS)
+        if method == "GET" and path == "/api/statistics/events?limit=1000":
+            return DummyResponse(200, SAMPLE_EVENTS)
+        if method == "GET" and path == "/api/scheduler/schedules?visible=true":
+            return DummyResponse(200, SAMPLE_SCHEDULES)
+        if method == "GET" and path == "/api/settings/smtp":
+            return DummyResponse(200, SAMPLE_SMTP)
+        if method == "POST" and path == "/api/settings/smtp/verify":
+            self.last_verify_payload = json
+            return DummyResponse(200, SAMPLE_SMTP_VERIFY)
         return DummyResponse(404, {})
 
 
@@ -233,3 +212,29 @@ async def test_command_text_response(monkeypatch):
     api._token = "tok"
     result = await api.toggle_beeper()
     assert result == 1
+
+
+@pytest.mark.asyncio
+async def test_fetch_statistics(monkeypatch):
+    monkeypatch.setattr('aiohttp.ClientSession', lambda: DummySession())
+    api = GreencellApi("http://host", "pw")
+    session = DummySession()
+    monkeypatch.setattr('aiohttp.ClientSession', lambda: session)
+    tests = await api.fetch_statistics_tests()
+    assert tests == SAMPLE_TESTS
+
+    measurements = await api.fetch_test_measurements("test-long")
+    assert measurements == SAMPLE_TEST_MEASUREMENTS
+
+    events = await api.fetch_statistics_events()
+    assert events == SAMPLE_EVENTS
+
+    schedules = await api.fetch_schedules()
+    assert schedules == SAMPLE_SCHEDULES
+
+    smtp = await api.fetch_smtp_settings()
+    assert smtp == SAMPLE_SMTP
+
+    smtp_verify = await api.verify_smtp_settings(SAMPLE_SMTP)
+    assert smtp_verify == SAMPLE_SMTP_VERIFY
+    assert session.last_verify_payload == SAMPLE_SMTP

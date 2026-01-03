@@ -162,6 +162,96 @@ class GreencellApi:
         """Cancel an active discharge/self-test cycle."""
         return await self._send_command("cancelTestOrder")
 
+    async def fetch_statistics_tests(self):
+        """Fetch history of UPS tests."""
+        async def _execute(session):
+            if not self._token:
+                await self.login(session=session)
+            try:
+                return await self._request(
+                    "GET", "/api/statistics/tests", session=session
+                )
+            except GreencellAuthError:
+                await self.login(session=session)
+                return await self._request(
+                    "GET", "/api/statistics/tests", session=session
+                )
+
+        return await self._with_session(_execute)
+
+    async def fetch_test_measurements(self, test_id: str):
+        """Fetch measurements for a specific test run."""
+        async def _execute(session):
+            if not self._token:
+                await self.login(session=session)
+            path = f"/api/statistics/tests/{test_id}/measurements"
+            try:
+                return await self._request("GET", path, session=session)
+            except GreencellAuthError:
+                await self.login(session=session)
+                return await self._request("GET", path, session=session)
+
+        return await self._with_session(_execute)
+
+    async def fetch_statistics_events(self, limit: int = 1000):
+        """Fetch event history."""
+        async def _execute(session):
+            if not self._token:
+                await self.login(session=session)
+            path = f"/api/statistics/events?limit={limit}"
+            try:
+                return await self._request("GET", path, session=session)
+            except GreencellAuthError:
+                await self.login(session=session)
+                return await self._request("GET", path, session=session)
+
+        return await self._with_session(_execute)
+
+    async def fetch_schedules(self, visible: bool = True):
+        """Fetch schedules."""
+        async def _execute(session):
+            if not self._token:
+                await self.login(session=session)
+            suffix = "?visible=true" if visible else ""
+            path = f"/api/scheduler/schedules{suffix}"
+            try:
+                return await self._request("GET", path, session=session)
+            except GreencellAuthError:
+                await self.login(session=session)
+                return await self._request("GET", path, session=session)
+
+        return await self._with_session(_execute)
+
+    async def fetch_smtp_settings(self):
+        """Fetch SMTP settings."""
+        async def _execute(session):
+            if not self._token:
+                await self.login(session=session)
+            try:
+                return await self._request("GET", "/api/settings/smtp", session=session)
+            except GreencellAuthError:
+                await self.login(session=session)
+                return await self._request("GET", "/api/settings/smtp", session=session)
+
+        return await self._with_session(_execute)
+
+    async def verify_smtp_settings(self, payload: dict):
+        """Verify SMTP settings."""
+        async def _execute(session):
+            if not self._token:
+                await self.login(session=session)
+            try:
+                return await self._request(
+                    "POST", "/api/settings/smtp/verify", json=payload, session=session
+                )
+            except GreencellAuthError:
+                await self.login(session=session)
+                return await self._request(
+                    "POST", "/api/settings/smtp/verify", json=payload, session=session
+                )
+
+        return await self._with_session(_execute)
+
     async def _send_command(self, action: str):
         async def _execute(session):
             if not self._token:

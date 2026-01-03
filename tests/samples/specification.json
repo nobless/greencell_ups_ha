@@ -1,0 +1,17 @@
+{
+  "name": "PowerProof/AiO",
+  "codes": [
+    "UPS02",
+    "UPS07"
+  ],
+  "inf": "",
+  "description": "\"UPS02=3A 12V\", \"UPS07=3A 12V\"",
+  "online": false,
+  "sinus": false,
+  "power": 480,
+  "capacity": 800,
+  "batteryType": 9,
+  "batteryNumber": 1,
+  "batteryVoltage": 12,
+  "current": 3
+}

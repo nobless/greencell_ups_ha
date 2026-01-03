@@ -1,0 +1,18 @@
+[
+  {
+    "id": "eb5e74f8-9bd4-4f15-abe5-6da39c82b2c6",
+    "date_add": 1767477229982,
+    "date_update": 1767477229982,
+    "event": {
+      "name": "battery-low",
+      "params": "{}"
+    },
+    "action": {
+      "name": "audio-alert",
+      "params": "{}"
+    },
+    "visible": true,
+    "_rev": "1-918547a9c076917624243c87b9003244",
+    "_attachments": {}
+  }
+]
