@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from homeassistant.components.button import ButtonEntity
 from homeassistant.const import CONF_HOST, EntityCategory
 from homeassistant.exceptions import HomeAssistantError
@@ -10,6 +8,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .api import GreencellApiError
+from .coordinator import GreencellCoordinator
 from .const import (
     DOMAIN,
     MANUFACTURER,
@@ -20,9 +19,6 @@ from .const import (
     SERVICE_TOGGLE_BEEPER,
     SERVICE_WAKE_UP,
 )
-
-if TYPE_CHECKING:
-    from .coordinator import GreencellCoordinator
 
 BUTTONS = [
     {
