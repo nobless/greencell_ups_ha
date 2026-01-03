@@ -62,6 +62,7 @@ async def async_get_config_entry_diagnostics(
         "coordinator": {
             "last_update_success": _safe_bool("last_update_success"),
             "update_interval": _safe_interval_seconds(coordinator),
+            "mac_address": getattr(coordinator, "mac_address", None) if coordinator else None,
         },
         "data": _safe_redact(coordinator_data),
         "specification": _safe_redact(specification),

@@ -8,7 +8,7 @@ from homeassistant.const import (
 )
 
 DOMAIN = "greencell_ups"
-PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR]
+PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.BUTTON]
 MANUFACTURER = "Green Cell"
 
 DEFAULT_SCAN_INTERVAL = 30  # seconds

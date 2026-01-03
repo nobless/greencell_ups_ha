@@ -112,7 +112,10 @@ class GreencellCoordinator(DataUpdateCoordinator):
             return get_mac_address(ip=self._host_for_mac_lookup())
 
         mac = await self.hass.async_add_executor_job(_lookup)
-        return self._normalize_mac(mac)
+        normalized = self._normalize_mac(mac)
+        if not normalized:
+            _LOGGER.debug("MAC lookup failed for host %s (raw=%s)", self.host, mac)
+        return normalized
 
     def _host_for_mac_lookup(self) -> str:
         """Normalize host for MAC lookup (strip scheme/port)."""
