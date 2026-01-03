@@ -1,22 +1,64 @@
-name: Build release asset
+name: Build release on push
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create release zip
-        run: |
-          zip -r greencell_ups.zip custom_components/greencell_ups
+      - name: Fetch tags
+        run: git fetch --tags --force
 
-      - name: Upload release asset
+      - name: Determine version and tag
+        id: meta
+        run: |
+          VERSION=$(jq -r .version custom_components/greencell_ups/manifest.json)
+          TAG="v${VERSION}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          if git ls-remote --tags origin | grep -q "refs/tags/${TAG}$"; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          TAG=${{ steps.meta.outputs.tag }}
+          PREV_TAG=$(git tag --list 'v*' --sort=-v:refname | grep -v "^${TAG}$" | head -n1)
+          if [ -n "$PREV_TAG" ]; then
+            RANGE="${PREV_TAG}..HEAD"
+          else
+            RANGE="HEAD"
+          fi
+          NOTES=$(git log --pretty=format:'- %s (%h)' $RANGE)
+          if [ -z "$NOTES" ]; then
+            NOTES="No changes listed."
+          fi
+          {
+            echo "notes<<'EOF'"
+            echo "Changes since ${PREV_TAG:-start}:"
+            echo "${NOTES}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create release zip
+        run: zip -r greencell_ups.zip custom_components/greencell_ups
+
+      - name: Create GitHub release
+        if: steps.meta.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           files: greencell_ups.zip
+          body: ${{ steps.notes.outputs.notes }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
