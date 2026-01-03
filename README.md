@@ -1,6 +1,6 @@
 # GreenCell UPS integration for Home Assistant
 
-Custom Home Assistant integration for GreenCell UPS devices and sensors through API.
+Custom Home Assistant integration for GreenCell UPS devices and sensors via the local HTTP API.
 
 ## Features
 - Sensors for voltages, load, battery level, temperature, and status/error codes (nominal/fault values appear under Diagnostics).
@@ -10,35 +10,39 @@ Custom Home Assistant integration for GreenCell UPS devices and sensors through 
 - Attempts to auto-detect MAC for device linking in HA; falls back to network resolution if possible.
 
 ## API endpoints used (reverse engineered)
-| Endpoint | Method | Purpose | Auth |
+| Endpoint | Method | Purpose | Auth/Notes |
 | --- | --- | --- | --- |
-| `/api/login` | POST | Obtain bearer token | No |
+| `/api/login` | POST | Obtain bearer token | No (201 on success) |
 | `/api/current_parameters` | GET | Live status/metrics payload | Bearer token |
-| `/api/specification`, `/api/device/specification` | GET | Device specification (model/codes, etc.) | Bearer token |
-| `/api/commands` | POST | Control actions via `{"action": "...", "args": {}}` | Bearer token |
-| Actions | `beeperToggleOrder`, `shutdownOrder`, `wakeUpOrder`, `shortTestOrder`, `longTestOrder`, `cancelTestOrder` | Command actions sent to `/api/commands` | Bearer token |
+| `/api/specification` | GET | Device specification (model/codes, etc.) | Bearer token |
+| `/api/device/specification` | GET | Device specification (alternate path) | Bearer token |
+| `/api/commands` | POST | Control actions via `{"action": "...", "args": {}}` (returns int/HTML) | Bearer token |
 | `/api/statistics/tests` | GET | History of UPS tests (short/long) with voltage thresholds and timestamps | Bearer token |
-| `/api/statistics/events` (limit) | GET | Event history (empty in observed responses) | Bearer token |
-| `/api/statistics/tests/{id}/measurements` | GET | Measurements for a given test run (timestamp, load, battery_voltage/level, utility_fail, etc.) | Bearer token |
-| `/api/scheduler/schedules` (visible) | GET | Visible schedules | Bearer token |
+| `/api/statistics/tests/{id}/measurements` | GET | Measurements for a test run (timestamp, load, battery_voltage/level, utility_fail, etc.) | Bearer token |
+| `/api/statistics/events` | GET | Event history (supports `limit` query) | Bearer token |
+| `/api/scheduler/schedules` | GET | Schedules (supports `visible` query) | Bearer token |
 | `/api/scheduler/schedules` | POST | Create schedule with `event`/`action` payload (e.g., battery-low → audio-alert) | Bearer token |
 | `/api/scheduler/schedules/{id}` | DELETE | Delete schedule | Bearer token |
 | `/api/settings/smtp` | GET/PUT | SMTP settings payload (host/port/user/pass/from/default_recipient) | Bearer token |
 | `/api/settings/smtp/verify` | POST | Verify SMTP settings | Bearer token |
 
-Sample responses for the above endpoints (tests, schedules, SMTP, measurements) are captured in this repo for reference. An OpenAPI export of the observed endpoints is available at `docs/openapi.json`.
+Sample responses for the above endpoints (tests, schedules, SMTP, measurements) are captured in this repo for reference. An OpenAPI export of the observed endpoints is available at [`docs/openapi.json`](docs/openapi.json). Endpoints are reverse engineered and may change with firmware updates.
 
-### OpenAPI endpoint tree (observed)
-- `/api/login` (POST)
-- `/api/current_parameters` (GET)
-- `/api/specification` (GET) and `/api/device/specification` (GET)
-- `/api/commands` (POST: beeperToggleOrder, shutdownOrder, wakeUpOrder, shortTestOrder, longTestOrder, cancelTestOrder)
-- `/api/statistics/tests` (GET) and `/api/statistics/tests/{id}/measurements` (GET)
-- `/api/statistics/events` (GET, optional `limit`)
-- `/api/scheduler/schedules` (GET/POST, optional `visible`), `/api/scheduler/schedules/{id}` (DELETE)
-- `/api/settings/smtp` (GET/PUT) and `/api/settings/smtp/verify` (POST)
+### Command actions
+Actions sent to `/api/commands`:
+- `beeperToggleOrder`
+- `shutdownOrder`
+- `wakeUpOrder`
+- `shortTestOrder`
+- `longTestOrder`
+- `cancelTestOrder`
 
 Sample payloads matching these endpoints live in `tests/samples/` for test coverage.
+
+### Notes
+- Control is exposed as device buttons (no HA services).
+- Custom icon/logo assets live in `custom_components/greencell_ups/assets/`.
+- Tests use the sample payloads in `tests/samples/` (run with `pytest`).
 
 ## Install
 ### HACS
@@ -46,13 +50,13 @@ The easiest way to install this component is by clicking the badge below, which 
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=nobless&repository=greencell_upds_ha&category=Integration)
 
-You can also add the integration manually by copying `custom_components/greencell_ups` into `<HASS config directory>/custom_components`
+You can also add the integration manually by copying `custom_components/greencell_ups` into `<HASS config directory>/custom_components`.
 
 ### Configuration
 
 - Browse to your Home Assistant instance.
-- Go to  Settings > Devices & Services.
-- In the bottom right corner, select the  Add Integration button.
+- Go to Settings > Devices & Services.
+- In the bottom right corner, select the Add Integration button.
 - From the list, select GreenCell UPS.
 - Enter host/password (SSL verify optional). Use Options to adjust scan interval and SSL verify.
 - Device page exposes control buttons (beeper toggle, shutdown/wake, short/long test, cancel test).
