@@ -42,7 +42,7 @@ jobs:
             NOTES="No changes listed."
           fi
           {
-            echo "notes<<'EOF'"
+            echo "notes<<EOF"
             echo "Changes since ${PREV_TAG:-start}:"
             echo "${NOTES}"
             echo "EOF"
