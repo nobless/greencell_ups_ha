@@ -61,4 +61,4 @@ jobs:
           files: greencell_ups.zip
           body: ${{ steps.notes.outputs.notes }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
