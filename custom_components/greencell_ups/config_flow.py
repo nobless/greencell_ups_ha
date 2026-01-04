@@ -71,9 +71,27 @@ class GreencellConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_HOST): str,
-                    vol.Required(CONF_PASSWORD): str,
-                    vol.Optional(CONF_NAME): str,
+                    vol.Required(
+                        CONF_HOST,
+                        description={
+                            "suggested_value": "https://)",
+                            "message": "Required; include scheme if needed",
+                        },
+                    ): str,
+                    vol.Optional(
+                        CONF_PASSWORD,
+                        description={
+                            "suggested_value": "",
+                            "message": "Optional; leave blank if device allows",
+                        },
+                    ): str,
+                    vol.Optional(
+                        CONF_NAME,
+                        description={
+                            "suggested_value": "",
+                            "message": "Optional; leave blank to auto-name from the device",
+                        },
+                    ): str,
                     vol.Optional(
                         CONF_VERIFY_SSL, default=DEFAULT_VERIFY_SSL
                     ): bool,
@@ -107,6 +125,9 @@ class GreencellOptionsFlowHandler(config_entries.OptionsFlow):
             mac = _normalize_mac(user_input.get(CONF_MAC))
             if mac:
                 options[CONF_MAC] = mac
+            # Password is optional override; blank means no change/none
+            if CONF_PASSWORD in user_input:
+                options[CONF_PASSWORD] = user_input[CONF_PASSWORD]
             return self.async_create_entry(title="", data=options)
 
         current_interval = self.config_entry.options.get(
@@ -119,6 +140,10 @@ class GreencellOptionsFlowHandler(config_entries.OptionsFlow):
         current_mac = self.config_entry.options.get(
             CONF_MAC,
             self.config_entry.data.get(CONF_MAC, ""),
+        )
+        current_password = self.config_entry.options.get(
+            CONF_PASSWORD,
+            self.config_entry.data.get(CONF_PASSWORD, ""),
         )
         return self.async_show_form(
             step_id="options",
@@ -134,7 +159,22 @@ class GreencellOptionsFlowHandler(config_entries.OptionsFlow):
                     vol.Required(
                         CONF_VERIFY_SSL, default=current_verify_ssl
                     ): bool,
-                    vol.Optional(CONF_MAC, default=current_mac): str,
+                    vol.Optional(
+                        CONF_MAC,
+                        default=current_mac,
+                        description={
+                            "suggested_value": "",
+                            "message": "Optional; leave blank to auto-detect",
+                        },
+                    ): str,
+                    vol.Optional(
+                        CONF_PASSWORD,
+                        default=current_password,
+                        description={
+                            "suggested_value": "",
+                            "message": "Optional; leave blank to keep existing password",
+                        },
+                    ): str,
                 }
             ),
         )

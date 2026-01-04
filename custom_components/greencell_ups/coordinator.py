@@ -48,13 +48,16 @@ class GreencellCoordinator(DataUpdateCoordinator):
         )
         self.mac_address = mac
 
+        password = config_entry.options.get(
+            CONF_PASSWORD, config_entry.data.get(CONF_PASSWORD)
+        )
         verify_ssl = config_entry.options.get(
             CONF_VERIFY_SSL,
             config_entry.data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
         )
         self.api = GreencellApi(
             self.host,
-            config_entry.data[CONF_PASSWORD],
+            password,
             session=async_get_clientsession(hass),
             verify_ssl=verify_ssl,
         )
