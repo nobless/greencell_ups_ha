@@ -1,8 +1,11 @@
 import asyncio
+import logging
 from typing import Optional
 
 import aiohttp
 import async_timeout
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class GreencellApiError(Exception):
@@ -47,6 +50,7 @@ class GreencellApi:
             close_session = True
 
         try:
+            _LOGGER.debug("HTTP %s %s (json=%s)", method, path, bool(json))
             async with async_timeout.timeout(10):
                 async with active_session.request(
                     method,
@@ -78,6 +82,7 @@ class GreencellApi:
                             if stripped.isdigit():
                                 return int(stripped)
                             return stripped or text
+            _LOGGER.debug("HTTP %s %s completed", method, path)
         except asyncio.TimeoutError as err:
             raise GreencellRequestError("Request timed out") from err
         except aiohttp.ClientError as err:
@@ -293,14 +298,19 @@ class GreencellApi:
                 await self.login(session=session)
 
             payload = {"action": action, "args": {}}
+            _LOGGER.debug("Sending command to /api/commands: action=%s", action)
             try:
-                return await self._request(
+                resp = await self._request(
                     "POST",
                     "/api/commands",
                     json=payload,
                     session=session,
                     expect_json=False,
                 )
+                _LOGGER.debug(
+                    "Command action=%s succeeded with response=%s", action, resp
+                )
+                return resp
             except GreencellAuthError:
                 await self.login(session=session)
                 return await self._request(
@@ -310,5 +320,8 @@ class GreencellApi:
                     session=session,
                     expect_json=False,
                 )
-
-        return await self._with_session(_execute)
+        try:
+            return await self._with_session(_execute)
+        except GreencellApiError as err:
+            _LOGGER.debug("Command %s failed at /api/commands: %s", action, err)
+            raise

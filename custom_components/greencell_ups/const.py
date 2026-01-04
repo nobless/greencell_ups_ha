@@ -14,7 +14,6 @@ MANUFACTURER = "Green Cell"
 DEFAULT_SCAN_INTERVAL = 30  # seconds
 MIN_SCAN_INTERVAL = 5  # seconds
 DEFAULT_VERIFY_SSL = False
-CONF_VERBOSE_LOGGING = "verbose_logging"
 
 # Services
 SERVICE_TOGGLE_BEEPER = "toggle_beeper"

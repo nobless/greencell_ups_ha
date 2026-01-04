@@ -21,7 +21,6 @@ from .api import (
     GreencellResponseError,
 )
 from .const import (
-    CONF_VERBOSE_LOGGING,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_VERIFY_SSL,
     DOMAIN,
@@ -89,7 +88,12 @@ class GreencellConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class GreencellOptionsFlowHandler(config_entries.OptionsFlow):
     def __init__(self, config_entry: config_entries.ConfigEntry):
-        self.config_entry = config_entry
+        # Avoid assigning to read-only properties; keep our own reference
+        self._config_entry = config_entry
+
+    @property
+    def config_entry(self) -> config_entries.ConfigEntry:
+        return self._config_entry
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         return await self.async_step_options(user_input)
@@ -99,7 +103,6 @@ class GreencellOptionsFlowHandler(config_entries.OptionsFlow):
             options: dict[str, Any] = {
                 CONF_SCAN_INTERVAL: user_input[CONF_SCAN_INTERVAL],
                 CONF_VERIFY_SSL: user_input[CONF_VERIFY_SSL],
-                CONF_VERBOSE_LOGGING: user_input.get(CONF_VERBOSE_LOGGING, False),
             }
             mac = _normalize_mac(user_input.get(CONF_MAC))
             if mac:
@@ -117,7 +120,6 @@ class GreencellOptionsFlowHandler(config_entries.OptionsFlow):
             CONF_MAC,
             self.config_entry.data.get(CONF_MAC, ""),
         )
-        current_verbose = self.config_entry.options.get(CONF_VERBOSE_LOGGING, False)
         return self.async_show_form(
             step_id="options",
             data_schema=vol.Schema(
@@ -133,7 +135,6 @@ class GreencellOptionsFlowHandler(config_entries.OptionsFlow):
                         CONF_VERIFY_SSL, default=current_verify_ssl
                     ): bool,
                     vol.Optional(CONF_MAC, default=current_mac): str,
-                    vol.Optional(CONF_VERBOSE_LOGGING, default=current_verbose): bool,
                 }
             ),
         )

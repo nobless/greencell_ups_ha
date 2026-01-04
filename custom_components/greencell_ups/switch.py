@@ -110,6 +110,7 @@ class GreencellSwitch(CoordinatorEntity["GreencellCoordinator"], SwitchEntity):
             manufacturer=MANUFACTURER,
             model=model,
             connections=connections,
+            configuration_url=self.coordinator.configuration_url,
         )
 
     async def async_turn_on(self, **kwargs) -> None:

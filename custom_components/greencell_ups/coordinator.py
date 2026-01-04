@@ -22,7 +22,6 @@ import socket
 from urllib.parse import urlparse
 
 from .const import (
-    CONF_VERBOSE_LOGGING,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_VERIFY_SSL,
     DOMAIN,
@@ -48,7 +47,6 @@ class GreencellCoordinator(DataUpdateCoordinator):
             config_entry.options.get(CONF_MAC) or config_entry.data.get(CONF_MAC)
         )
         self.mac_address = mac
-        self.verbose_logging = config_entry.options.get(CONF_VERBOSE_LOGGING, False)
 
         verify_ssl = config_entry.options.get(
             CONF_VERIFY_SSL,
@@ -68,6 +66,19 @@ class GreencellCoordinator(DataUpdateCoordinator):
             name=DOMAIN,
             update_interval=timedelta(seconds=scan_interval),
         )
+
+    @property
+    def _debug_enabled(self) -> bool:
+        """Return True when HA logging is set to debug for this logger."""
+        return _LOGGER.isEnabledFor(logging.DEBUG)
+
+    @property
+    def configuration_url(self) -> str:
+        """Return a URL to the UPS web UI based on the configured host."""
+        parsed = urlparse(self.host)
+        if parsed.scheme:
+            return self.host
+        return f"http://{self.host}"
 
     async def _async_update_data(self) -> dict[str, Any]:
         try:
@@ -92,8 +103,11 @@ class GreencellCoordinator(DataUpdateCoordinator):
                         if resolved_mac:
                             self.mac_address = resolved_mac
                 except Exception as err:
-                    if self.verbose_logging:
+                    if self._debug_enabled:
                         _LOGGER.debug("Failed to fetch specification: %s", err)
+            elif not self._user_named:
+                # Keep name in sync if spec was already available
+                self.device_name = self._build_name_from_spec(self.specification)
             return data
         except GreencellApiError as err:
             raise UpdateFailed(err)
@@ -134,10 +148,10 @@ class GreencellCoordinator(DataUpdateCoordinator):
             mac = await self.hass.async_add_executor_job(_lookup, candidate)
             normalized = self._normalize_mac(mac)
             if normalized:
-                if self.verbose_logging:
+                if self._debug_enabled:
                     _LOGGER.debug("MAC lookup success for host %s (target=%s, mac=%s)", self.host, candidate, normalized)
                 return normalized
-            if self.verbose_logging:
+            if self._debug_enabled:
                 _LOGGER.debug("MAC lookup failed for host %s (target=%s, raw=%s)", self.host, candidate, mac)
         return None
 
@@ -185,5 +199,5 @@ class GreencellCoordinator(DataUpdateCoordinator):
             data = await self.api.fetch_status()
             self.async_set_updated_data(data)
         except GreencellApiError as err:
-            if self.verbose_logging:
+            if self._debug_enabled:
                 _LOGGER.debug("Manual refresh of current parameters failed: %s", err)

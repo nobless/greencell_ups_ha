@@ -79,6 +79,7 @@ class GreencellButton(CoordinatorEntity[GreencellCoordinator], ButtonEntity):
             manufacturer=MANUFACTURER,
             model=model,
             connections=connections,
+            configuration_url=self.coordinator.configuration_url,
         )
 
     async def async_press(self) -> None:

@@ -200,4 +200,5 @@ class GreencellSensor(CoordinatorEntity["GreencellCoordinator"], SensorEntity):
             manufacturer=MANUFACTURER,
             model=model,
             connections=connections,
+            configuration_url=self.coordinator.configuration_url,
         )
