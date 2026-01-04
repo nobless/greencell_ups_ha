@@ -7,6 +7,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.const import (
     CONF_HOST,
     CONF_MAC,
+    CONF_NAME,
     CONF_PASSWORD,
     CONF_SCAN_INTERVAL,
     CONF_VERIFY_SSL,
@@ -34,7 +35,11 @@ _LOGGER = logging.getLogger(__name__)
 class GreencellCoordinator(DataUpdateCoordinator):
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry):
         self.hass = hass
+        self.config_entry = config_entry
         self.host = config_entry.data[CONF_HOST]
+        user_name = config_entry.data.get(CONF_NAME)
+        self._user_named = bool(user_name)
+        self.device_name = user_name or f"Greencell UPS ({self.host})"
         scan_interval = max(
             config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
             MIN_SCAN_INTERVAL,
@@ -80,6 +85,8 @@ class GreencellCoordinator(DataUpdateCoordinator):
                         self.mac_address = self._normalize_mac(
                             self._extract_mac(self.specification)
                         )
+                    if not self._user_named:
+                        self.device_name = self._build_name_from_spec(self.specification)
                     if self.mac_address is None:
                         resolved_mac = await self._async_resolve_mac()
                         if resolved_mac:
@@ -160,3 +167,23 @@ class GreencellCoordinator(DataUpdateCoordinator):
         if raw and raw not in candidates:
             candidates.append(raw)
         return candidates
+
+    def _build_name_from_spec(self, spec: Any) -> str:
+        if not isinstance(spec, dict):
+            return self.device_name
+        name = spec.get("name")
+        capacity = spec.get("capacity")
+        if name and capacity:
+            return f"{name} {capacity}VA"
+        if name:
+            return str(name)
+        return self.device_name
+
+    async def async_refresh_current_parameters(self) -> None:
+        """Fetch current parameters immediately and update coordinator data."""
+        try:
+            data = await self.api.fetch_status()
+            self.async_set_updated_data(data)
+        except GreencellApiError as err:
+            if self.verbose_logging:
+                _LOGGER.debug("Manual refresh of current parameters failed: %s", err)

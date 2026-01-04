@@ -18,15 +18,8 @@ jobs:
         id: meta
         run: |
           BASE_VERSION=$(jq -r .version custom_components/greencell_ups/manifest.json)
-          MAJOR=$(echo "$BASE_VERSION" | cut -d. -f1)
-          MINOR=$(echo "$BASE_VERSION" | cut -d. -f2)
-          PATCH="${GITHUB_RUN_NUMBER}"
-          VERSION="${MAJOR}.${MINOR}.${PATCH}"
-          # update manifest version for the release artifact (not committed)
-          tmp=$(mktemp)
-          jq --arg ver "$VERSION" '.version=$ver' custom_components/greencell_ups/manifest.json > "$tmp" && mv "$tmp" custom_components/greencell_ups/manifest.json
-          TAG="v${VERSION}"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          TAG="v${BASE_VERSION}"
+          echo "version=${BASE_VERSION}" >> "$GITHUB_OUTPUT"
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           if git ls-remote --tags origin | grep -q "refs/tags/${TAG}$"; then
             echo "exists=true" >> "$GITHUB_OUTPUT"

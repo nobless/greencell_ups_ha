@@ -6,6 +6,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.core import callback
 
 from .api import GreencellApiError
 from .coordinator import GreencellCoordinator
@@ -74,7 +75,7 @@ class GreencellButton(CoordinatorEntity[GreencellCoordinator], ButtonEntity):
             connections.add((dr.CONNECTION_NETWORK_MAC, self.coordinator.mac_address))
         return DeviceInfo(
             identifiers={(DOMAIN, self._entry_id)},
-            name=f"Greencell UPS ({self._host})",
+            name=self.coordinator.device_name,
             manufacturer=MANUFACTURER,
             model=model,
             connections=connections,
@@ -83,7 +84,7 @@ class GreencellButton(CoordinatorEntity[GreencellCoordinator], ButtonEntity):
     async def async_press(self) -> None:
         special = self._conf.get("special")
         if special == "refresh":
-            await self.coordinator.async_request_refresh()
+            await self.coordinator.async_refresh_current_parameters()
             return
 
         method = getattr(self.coordinator.api, self._conf.get("method", ""), None)
@@ -91,6 +92,22 @@ class GreencellButton(CoordinatorEntity[GreencellCoordinator], ButtonEntity):
             raise HomeAssistantError(f"Command {self._conf['key']} not available")
         try:
             await method()
-            await self.coordinator.async_request_refresh()
+            await self.coordinator.async_refresh_current_parameters()
         except GreencellApiError as err:
+            self._log_activity(f"Command failed: {err}")
             raise HomeAssistantError(f"Command failed: {err}") from err
+
+    @callback
+    def _log_activity(self, message: str) -> None:
+        try:
+            self.hass.bus.async_fire(
+                "logbook_entry",
+                {
+                    "name": self.name or "Greencell UPS",
+                    "message": message,
+                    "domain": DOMAIN,
+                    "entity_id": self.entity_id,
+                },
+            )
+        except Exception:
+            pass

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import CONF_HOST, EntityCategory
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.core import callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -24,6 +25,7 @@ SWITCHES = [
         "category": EntityCategory.CONFIG,
         "state_key": "beeperOn",
         "toggle_method": "toggle_beeper",
+        "check_response": True,
     },
     {
         "key": "ups_output",
@@ -32,6 +34,7 @@ SWITCHES = [
         "category": EntityCategory.CONFIG,
         "state_key": "shutdownActive",
         "toggle_method": {"on": "wake_up", "off": "shutdown"},
+        "check_response": True,
     },
     {
         "key": "short_test",
@@ -40,6 +43,7 @@ SWITCHES = [
         "category": EntityCategory.DIAGNOSTIC,
         "state_key": "testInProgress",
         "toggle_method": {"on": "short_test", "off": "cancel_test"},
+        "check_response": True,
     },
     {
         "key": "long_test",
@@ -48,6 +52,7 @@ SWITCHES = [
         "category": EntityCategory.DIAGNOSTIC,
         "state_key": "testInProgress",
         "toggle_method": {"on": "long_test", "off": "cancel_test"},
+        "check_response": True,
     },
 ]
 
@@ -101,7 +106,7 @@ class GreencellSwitch(CoordinatorEntity["GreencellCoordinator"], SwitchEntity):
             connections.add((dr.CONNECTION_NETWORK_MAC, self.coordinator.mac_address))
         return DeviceInfo(
             identifiers={(DOMAIN, self._entry_id)},
-            name=f"Greencell UPS ({self._host})",
+            name=self.coordinator.device_name,
             manufacturer=MANUFACTURER,
             model=model,
             connections=connections,
@@ -121,12 +126,38 @@ class GreencellSwitch(CoordinatorEntity["GreencellCoordinator"], SwitchEntity):
                 method = getattr(self.coordinator.api, method_name, None)
                 if method is None:
                     raise HomeAssistantError(f"Command {method_name} not available")
-                await method()
+                resp = await method()
             else:
                 method = getattr(self.coordinator.api, method_conf, None)
                 if method is None:
                     raise HomeAssistantError(f"Command {method_conf} not available")
-                await method()
-            await self.coordinator.async_request_refresh()
+                resp = await method()
+            if self._conf.get("check_response", False) and not self._is_success(resp):
+                message = f"Command did not succeed (response={resp})"
+                self._log_activity(message)
+                raise HomeAssistantError(message)
+            await self.coordinator.async_refresh_current_parameters()
         except GreencellApiError as err:
+            self._log_activity(f"Command failed: {err}")
             raise HomeAssistantError(f"Command failed: {err}") from err
+
+    @staticmethod
+    def _is_success(resp: object) -> bool:
+        if isinstance(resp, int) and resp == 1:
+            return True
+        return False
+
+    @callback
+    def _log_activity(self, message: str) -> None:
+        try:
+            self.hass.bus.async_fire(
+                "logbook_entry",
+                {
+                    "name": self.name or "Greencell UPS",
+                    "message": message,
+                    "domain": DOMAIN,
+                    "entity_id": self.entity_id,
+                },
+            )
+        except Exception:
+            pass

@@ -106,7 +106,7 @@ class GreencellBinarySensor(CoordinatorEntity["GreencellCoordinator"], BinarySen
             connections.add((dr.CONNECTION_NETWORK_MAC, self.coordinator.mac_address))
         return DeviceInfo(
             identifiers={(DOMAIN, self._entry_id)},
-            name=f"Greencell UPS ({self._host})",
+            name=self.coordinator.device_name,
             manufacturer=MANUFACTURER,
             model=model,
             connections=connections,

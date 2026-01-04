@@ -9,6 +9,9 @@ Custom Home Assistant integration for GreenCell UPS devices and sensors via the 
 - Configurable scan interval and SSL verification via Options flow.
 - Attempts to auto-detect MAC for device linking in HA; you can also set it manually via Options if discovery fails.
 
+## UI reference
+![GreenCell UPS dashboard](docs/ui.png)
+
 ## API endpoints used (reverse engineered)
 | Endpoint | Method | Purpose | Auth/Notes |
 | --- | --- | --- | --- |
@@ -40,8 +43,7 @@ Actions sent to `/api/commands`:
 Sample payloads matching these endpoints live in `tests/samples/` for test coverage.
 
 ### Notes
-- Control is exposed as device buttons (no HA services).
-- Custom icon/logo assets live in `custom_components/greencell_ups/assets/`.
+- Control is exposed as device buttons/switches.
 - Tests use the sample payloads in `tests/samples/` (run with `pytest`).
 - Some diagnostic sensors (e.g., input voltage fault, nominal voltages, register, battery number nominal) are disabled by default in HA but can be enabled manually.
 

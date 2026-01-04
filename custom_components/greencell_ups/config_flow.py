@@ -6,6 +6,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import (
     CONF_HOST,
+    CONF_NAME,
     CONF_MAC,
     CONF_PASSWORD,
     CONF_SCAN_INTERVAL,
@@ -44,6 +45,7 @@ class GreencellConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             host = user_input[CONF_HOST].strip()
             password = user_input[CONF_PASSWORD]
+            name = user_input.get(CONF_NAME, "").strip() or None
             await self.async_set_unique_id(host)
             self._abort_if_unique_id_configured()
 
@@ -55,8 +57,10 @@ class GreencellConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_PASSWORD: password,
                     CONF_VERIFY_SSL: user_input.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
                 }
+                if name:
+                    entry_data[CONF_NAME] = name
                 return self.async_create_entry(
-                    title=host,
+                    title=name or host,
                     data=entry_data,
                 )
             except GreencellAuthError:
@@ -70,6 +74,7 @@ class GreencellConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_HOST): str,
                     vol.Required(CONF_PASSWORD): str,
+                    vol.Optional(CONF_NAME): str,
                     vol.Optional(
                         CONF_VERIFY_SSL, default=DEFAULT_VERIFY_SSL
                     ): bool,
@@ -84,7 +89,7 @@ class GreencellConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class GreencellOptionsFlowHandler(config_entries.OptionsFlow):
     def __init__(self, config_entry: config_entries.ConfigEntry):
-        super().__init__(config_entry)
+        self.config_entry = config_entry
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         return await self.async_step_options(user_input)
