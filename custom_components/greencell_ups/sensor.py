@@ -27,6 +27,7 @@ SENSORS = {
         "device_class": SensorDeviceClass.VOLTAGE,
         "icon": "mdi:flash-alert",
         "entity_category": EntityCategory.DIAGNOSTIC,
+        "enabled_by_default": False,
     },
     "outputVoltage": {
         "name": "Output Voltage",
@@ -46,6 +47,7 @@ SENSORS = {
         "device_class": SensorDeviceClass.VOLTAGE,
         "icon": "mdi:car-battery",
         "entity_category": EntityCategory.DIAGNOSTIC,
+        "enabled_by_default": False,
     },
     "batteryVoltageHighNominal": {
         "name": "Battery Voltage High Nominal",
@@ -53,6 +55,7 @@ SENSORS = {
         "device_class": SensorDeviceClass.VOLTAGE,
         "icon": "mdi:battery-positive",
         "entity_category": EntityCategory.DIAGNOSTIC,
+        "enabled_by_default": False,
     },
     "batteryVoltageLowNominal": {
         "name": "Battery Voltage Low Nominal",
@@ -60,6 +63,7 @@ SENSORS = {
         "device_class": SensorDeviceClass.VOLTAGE,
         "icon": "mdi:battery-negative",
         "entity_category": EntityCategory.DIAGNOSTIC,
+        "enabled_by_default": False,
     },
     "batteryLevel": {
         "name": "Battery Level",
@@ -90,6 +94,7 @@ SENSORS = {
         "device_class": SensorDeviceClass.FREQUENCY,
         "icon": "mdi:sine-wave",
         "entity_category": EntityCategory.DIAGNOSTIC,
+        "enabled_by_default": False,
     },
     "inputVoltageNominal": {
         "name": "Input Voltage Nominal",
@@ -97,6 +102,7 @@ SENSORS = {
         "device_class": SensorDeviceClass.VOLTAGE,
         "icon": "mdi:flash-outline",
         "entity_category": EntityCategory.DIAGNOSTIC,
+        "enabled_by_default": False,
     },
     "inputCurrentNominal": {
         "name": "Input Current Nominal",
@@ -104,12 +110,14 @@ SENSORS = {
         "device_class": SensorDeviceClass.CURRENT,
         "icon": "mdi:current-ac",
         "entity_category": EntityCategory.DIAGNOSTIC,
+        "enabled_by_default": False,
     },
     "batteryNumberNominal": {
         "name": "Battery Number Nominal",
         "unit": None,
         "icon": "mdi:battery-plus",
         "entity_category": EntityCategory.DIAGNOSTIC,
+        "enabled_by_default": False,
     },
     "status": {
         "name": "Status",
@@ -128,6 +136,14 @@ SENSORS = {
         "unit": None,
         "icon": "mdi:code-brackets",
         "entity_category": EntityCategory.DIAGNOSTIC,
+        "enabled_by_default": False,
+    },
+    "macAddress": {
+        "name": "MAC Address",
+        "unit": None,
+        "icon": "mdi:lan",
+        "entity_category": EntityCategory.DIAGNOSTIC,
+        "enabled_by_default": False,
     },
 }
 
@@ -158,10 +174,14 @@ class GreencellSensor(CoordinatorEntity["GreencellCoordinator"], SensorEntity):
         self._attr_icon = sensor_config.get("icon")
         self._attr_device_class = sensor_config.get("device_class")
         self._attr_entity_category = sensor_config.get("entity_category")
+        if sensor_config.get("enabled_by_default") is not None:
+            self._attr_entity_registry_enabled_default = sensor_config["enabled_by_default"]
         self._attr_unique_id = f"greencell_{entry_id}_{key}"
 
     @property
     def native_value(self) -> Any:
+        if self._key == "macAddress":
+            return getattr(self.coordinator, "mac_address", None)
         data = self.coordinator.data or {}
         return data.get(self._key)
 

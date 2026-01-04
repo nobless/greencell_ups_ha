@@ -90,6 +90,8 @@ class DummySession:
             if self.spec_calls == 1:
                 return DummyResponse(401, {})
             return DummyResponse(200, SAMPLE_SPEC)
+        if method == "GET" and path == "/api/device/specification":
+            return DummyResponse(200, SAMPLE_SPEC)
         if method == "GET" and path == "/api/error":
             return DummyResponse(500, {})
         if method == "POST" and path == "/api/commands":
@@ -114,9 +116,14 @@ class DummySession:
             return DummyResponse(200, SAMPLE_SCHEDULES)
         if method == "GET" and path == "/api/settings/smtp":
             return DummyResponse(200, SAMPLE_SMTP)
+        if method == "PUT" and path == "/api/settings/smtp":
+            self.last_verify_payload = json
+            return DummyResponse(200, SAMPLE_SMTP)
         if method == "POST" and path == "/api/settings/smtp/verify":
             self.last_verify_payload = json
             return DummyResponse(200, SAMPLE_SMTP_VERIFY)
+        if method == "DELETE" and path.startswith("/api/scheduler/schedules/"):
+            return DummyResponse(200, True)
         return DummyResponse(404, {})
 
 
@@ -216,10 +223,9 @@ async def test_command_text_response(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_fetch_statistics(monkeypatch):
-    monkeypatch.setattr('aiohttp.ClientSession', lambda: DummySession())
-    api = GreencellApi("http://host", "pw")
     session = DummySession()
     monkeypatch.setattr('aiohttp.ClientSession', lambda: session)
+    api = GreencellApi("http://host", "pw")
     tests = await api.fetch_statistics_tests()
     assert tests == SAMPLE_TESTS
 
@@ -235,6 +241,12 @@ async def test_fetch_statistics(monkeypatch):
     smtp = await api.fetch_smtp_settings()
     assert smtp == SAMPLE_SMTP
 
+    smtp_update = await api.update_smtp_settings(SAMPLE_SMTP)
+    assert smtp_update == SAMPLE_SMTP
+
     smtp_verify = await api.verify_smtp_settings(SAMPLE_SMTP)
     assert smtp_verify == SAMPLE_SMTP_VERIFY
     assert session.last_verify_payload == SAMPLE_SMTP
+
+    deleted = await api.delete_schedule("sched-1")
+    assert deleted is True

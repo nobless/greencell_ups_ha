@@ -7,7 +7,7 @@ Custom Home Assistant integration for GreenCell UPS devices and sensors via the 
 - Binary sensors for connectivity, failures, tests, shutdown, beeper state, and more.
 - Device buttons for control: toggle beeper, shutdown/wake, short/long test, cancel test (on the device page).
 - Configurable scan interval and SSL verification via Options flow.
-- Attempts to auto-detect MAC for device linking in HA; falls back to network resolution if possible.
+- Attempts to auto-detect MAC for device linking in HA; you can also set it manually via Options if discovery fails.
 
 ## API endpoints used (reverse engineered)
 | Endpoint | Method | Purpose | Auth/Notes |
@@ -33,9 +33,9 @@ Actions sent to `/api/commands`:
 - `beeperToggleOrder`
 - `shutdownOrder`
 - `wakeUpOrder`
-- `shortTestOrder`
-- `longTestOrder`
-- `cancelTestOrder`
+- `shortTestOrder` (short test, ~10s)
+- `longTestOrder` (battery discharge test)
+- `cancelTestOrder` (cancels running tests)
 
 Sample payloads matching these endpoints live in `tests/samples/` for test coverage.
 
@@ -43,6 +43,7 @@ Sample payloads matching these endpoints live in `tests/samples/` for test cover
 - Control is exposed as device buttons (no HA services).
 - Custom icon/logo assets live in `custom_components/greencell_ups/assets/`.
 - Tests use the sample payloads in `tests/samples/` (run with `pytest`).
+- Some diagnostic sensors (e.g., input voltage fault, nominal voltages, register, battery number nominal) are disabled by default in HA but can be enabled manually.
 
 ## Install
 ### HACS

@@ -112,12 +112,16 @@ class GreencellApi:
                 await self.login(session=session)
 
             try:
-                return await self._request("GET", "/api/specification", session=session)
+                try:
+                    return await self._request("GET", "/api/specification", session=session)
+                except GreencellRequestError:
+                    return await self._request("GET", "/api/device/specification", session=session)
             except GreencellAuthError:
                 await self.login(session=session)
-                return await self._request(
-                    "GET", "/api/specification", session=session
-                )
+                try:
+                    return await self._request("GET", "/api/specification", session=session)
+                except GreencellRequestError:
+                    return await self._request("GET", "/api/device/specification", session=session)
 
         return await self._with_session(_execute)
 
@@ -222,6 +226,20 @@ class GreencellApi:
 
         return await self._with_session(_execute)
 
+    async def delete_schedule(self, schedule_id: str):
+        """Delete a schedule by id."""
+        async def _execute(session):
+            if not self._token:
+                await self.login(session=session)
+            path = f"/api/scheduler/schedules/{schedule_id}"
+            try:
+                return await self._request("DELETE", path, session=session)
+            except GreencellAuthError:
+                await self.login(session=session)
+                return await self._request("DELETE", path, session=session)
+
+        return await self._with_session(_execute)
+
     async def fetch_smtp_settings(self):
         """Fetch SMTP settings."""
         async def _execute(session):
@@ -232,6 +250,23 @@ class GreencellApi:
             except GreencellAuthError:
                 await self.login(session=session)
                 return await self._request("GET", "/api/settings/smtp", session=session)
+
+        return await self._with_session(_execute)
+
+    async def update_smtp_settings(self, payload: dict):
+        """Update SMTP settings."""
+        async def _execute(session):
+            if not self._token:
+                await self.login(session=session)
+            try:
+                return await self._request(
+                    "PUT", "/api/settings/smtp", json=payload, session=session
+                )
+            except GreencellAuthError:
+                await self.login(session=session)
+                return await self._request(
+                    "PUT", "/api/settings/smtp", json=payload, session=session
+                )
 
         return await self._with_session(_execute)
 

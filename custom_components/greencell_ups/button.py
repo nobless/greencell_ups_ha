@@ -15,46 +15,16 @@ from .const import (
     SERVICE_CANCEL_TEST,
     SERVICE_LONG_TEST,
     SERVICE_SHORT_TEST,
-    SERVICE_SHUTDOWN,
-    SERVICE_TOGGLE_BEEPER,
-    SERVICE_WAKE_UP,
 )
 
 BUTTONS = [
     {
-        "key": SERVICE_TOGGLE_BEEPER,
-        "name": "Toggle Beeper",
-        "icon": "mdi:volume-high",
-        "method": "toggle_beeper",
-        "category": EntityCategory.CONFIG,
-    },
-    {
-        "key": SERVICE_SHUTDOWN,
-        "name": "Shutdown",
-        "icon": "mdi:power-plug-off",
-        "method": "shutdown",
-        "category": EntityCategory.CONFIG,
-    },
-    {
-        "key": SERVICE_WAKE_UP,
-        "name": "Wake Up",
-        "icon": "mdi:power-plug",
-        "method": "wake_up",
-        "category": EntityCategory.CONFIG,
-    },
-    {
-        "key": SERVICE_SHORT_TEST,
-        "name": "Short Test",
-        "icon": "mdi:timer-outline",
-        "method": "short_test",
+        "key": "refresh_data",
+        "name": "Refresh Now",
+        "icon": "mdi:refresh",
+        "method": None,
         "category": EntityCategory.DIAGNOSTIC,
-    },
-    {
-        "key": SERVICE_LONG_TEST,
-        "name": "Long Test",
-        "icon": "mdi:timer-cog-outline",
-        "method": "long_test",
-        "category": EntityCategory.DIAGNOSTIC,
+        "special": "refresh",
     },
     {
         "key": SERVICE_CANCEL_TEST,
@@ -111,10 +81,16 @@ class GreencellButton(CoordinatorEntity[GreencellCoordinator], ButtonEntity):
         )
 
     async def async_press(self) -> None:
-        method = getattr(self.coordinator.api, self._conf["method"], None)
+        special = self._conf.get("special")
+        if special == "refresh":
+            await self.coordinator.async_request_refresh()
+            return
+
+        method = getattr(self.coordinator.api, self._conf.get("method", ""), None)
         if method is None:
             raise HomeAssistantError(f"Command {self._conf['key']} not available")
         try:
             await method()
+            await self.coordinator.async_request_refresh()
         except GreencellApiError as err:
             raise HomeAssistantError(f"Command failed: {err}") from err

@@ -6,10 +6,12 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import (
     CONF_HOST,
+    CONF_MAC,
     CONF_PASSWORD,
     CONF_SCAN_INTERVAL,
     CONF_VERIFY_SSL,
 )
+from homeassistant.helpers.device_registry import format_mac
 
 from .api import (
     GreencellApi,
@@ -17,7 +19,22 @@ from .api import (
     GreencellRequestError,
     GreencellResponseError,
 )
-from .const import DEFAULT_SCAN_INTERVAL, DEFAULT_VERIFY_SSL, DOMAIN, MIN_SCAN_INTERVAL
+from .const import (
+    CONF_VERBOSE_LOGGING,
+    DEFAULT_SCAN_INTERVAL,
+    DEFAULT_VERIFY_SSL,
+    DOMAIN,
+    MIN_SCAN_INTERVAL,
+)
+
+
+def _normalize_mac(mac: str | None) -> str | None:
+    if not mac:
+        return None
+    try:
+        return format_mac(mac)
+    except Exception:
+        return None
 
 
 class GreencellConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -77,7 +94,11 @@ class GreencellOptionsFlowHandler(config_entries.OptionsFlow):
             options: dict[str, Any] = {
                 CONF_SCAN_INTERVAL: user_input[CONF_SCAN_INTERVAL],
                 CONF_VERIFY_SSL: user_input[CONF_VERIFY_SSL],
+                CONF_VERBOSE_LOGGING: user_input.get(CONF_VERBOSE_LOGGING, False),
             }
+            mac = _normalize_mac(user_input.get(CONF_MAC))
+            if mac:
+                options[CONF_MAC] = mac
             return self.async_create_entry(title="", data=options)
 
         current_interval = self.config_entry.options.get(
@@ -87,6 +108,11 @@ class GreencellOptionsFlowHandler(config_entries.OptionsFlow):
             CONF_VERIFY_SSL,
             self.config_entry.data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
         )
+        current_mac = self.config_entry.options.get(
+            CONF_MAC,
+            self.config_entry.data.get(CONF_MAC, ""),
+        )
+        current_verbose = self.config_entry.options.get(CONF_VERBOSE_LOGGING, False)
         return self.async_show_form(
             step_id="options",
             data_schema=vol.Schema(
@@ -101,6 +127,8 @@ class GreencellOptionsFlowHandler(config_entries.OptionsFlow):
                     vol.Required(
                         CONF_VERIFY_SSL, default=current_verify_ssl
                     ): bool,
+                    vol.Optional(CONF_MAC, default=current_mac): str,
+                    vol.Optional(CONF_VERBOSE_LOGGING, default=current_verbose): bool,
                 }
             ),
         )
