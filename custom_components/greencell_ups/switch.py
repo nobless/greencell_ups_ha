@@ -38,7 +38,7 @@ SWITCHES = [
     },
     {
         "key": "short_test",
-        "name": "Short Test (≈10s)",
+        "name": "Test: Short (≈10s)",
         "icon": "mdi:timer-outline",
         "category": EntityCategory.DIAGNOSTIC,
         "state_key": "testInProgress",
@@ -47,11 +47,20 @@ SWITCHES = [
     },
     {
         "key": "long_test",
-        "name": "Long Test (Battery Discharge)",
+        "name": "Test: Long (Battery Discharge)",
         "icon": "mdi:timer-cog-outline",
         "category": EntityCategory.DIAGNOSTIC,
         "state_key": "testInProgress",
         "toggle_method": {"on": "long_test", "off": "cancel_test"},
+        "check_response": True,
+    },
+    {
+        "key": "cancel_test",
+        "name": "Test: Status",
+        "icon": "mdi:cancel",
+        "category": EntityCategory.DIAGNOSTIC,
+        "state_key": "testInProgress",
+        "toggle_method": {"on": None, "off": "cancel_test"},
         "check_response": True,
     },
 ]
@@ -124,6 +133,8 @@ class GreencellSwitch(CoordinatorEntity["GreencellCoordinator"], SwitchEntity):
         try:
             if isinstance(method_conf, dict):
                 method_name = method_conf["on"] if turn_on else method_conf["off"]
+                if method_name is None:
+                    raise HomeAssistantError("Command not available for this action")
                 method = getattr(self.coordinator.api, method_name, None)
                 if method is None:
                     raise HomeAssistantError(f"Command {method_name} not available")
@@ -137,7 +148,8 @@ class GreencellSwitch(CoordinatorEntity["GreencellCoordinator"], SwitchEntity):
                 message = f"Command did not succeed (response={resp})"
                 self._log_activity(message)
                 raise HomeAssistantError(message)
-            await self.coordinator.async_refresh_current_parameters()
+            self._log_success(turn_on)
+            await self.coordinator.async_refresh_current_parameters_with_delay(0.75)
         except GreencellApiError as err:
             self._log_activity(f"Command failed: {err}")
             raise HomeAssistantError(f"Command failed: {err}") from err
@@ -156,6 +168,31 @@ class GreencellSwitch(CoordinatorEntity["GreencellCoordinator"], SwitchEntity):
                 {
                     "name": self.name or "Greencell UPS",
                     "message": message,
+                    "domain": DOMAIN,
+                    "entity_id": self.entity_id,
+                },
+            )
+        except Exception:
+            pass
+
+    @callback
+    def _log_success(self, turn_on: bool) -> None:
+        """Log successful test commands to the device activity log."""
+        key = self._conf.get("key")
+        if key not in {"short_test", "long_test", "cancel_test"}:
+            return
+        if key == "short_test":
+            action = "Short test started" if turn_on else "Test cancelled"
+        elif key == "long_test":
+            action = "Long test started" if turn_on else "Test cancelled"
+        else:
+            action = "Test cancelled"
+        try:
+            self.hass.bus.async_fire(
+                "logbook_entry",
+                {
+                    "name": self.name or "Greencell UPS",
+                    "message": action,
                     "domain": DOMAIN,
                     "entity_id": self.entity_id,
                 },

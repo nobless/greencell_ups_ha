@@ -40,17 +40,23 @@ def _normalize_mac(mac: str | None) -> str | None:
 class GreencellConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
+    def __init__(self):
+        super().__init__()
+        self._LOGGER = logging.getLogger(__name__)
+
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
         if user_input is not None:
             host = user_input[CONF_HOST].strip()
             password = user_input[CONF_PASSWORD]
             name = user_input.get(CONF_NAME, "").strip() or None
+            self._LOGGER.debug("Config flow: received host=%s name_set=%s", host, bool(name))
             await self.async_set_unique_id(host)
             self._abort_if_unique_id_configured()
 
             api = GreencellApi(host, password)
             try:
                 await api.login()
+                self._LOGGER.debug("Config flow: login ok for host=%s", host)
                 entry_data = {
                     CONF_HOST: host,
                     CONF_PASSWORD: password,
@@ -63,8 +69,10 @@ class GreencellConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     data=entry_data,
                 )
             except GreencellAuthError:
+                self._LOGGER.debug("Config flow: auth failed for host=%s", host)
                 return self.async_abort(reason="invalid_auth")
             except (GreencellRequestError, GreencellResponseError):
+                self._LOGGER.debug("Config flow: cannot connect to host=%s", host)
                 return self.async_abort(reason="cannot_connect")
 
         return self.async_show_form(

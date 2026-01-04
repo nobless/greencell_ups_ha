@@ -27,13 +27,6 @@ BUTTONS = [
         "category": EntityCategory.DIAGNOSTIC,
         "special": "refresh",
     },
-    {
-        "key": SERVICE_CANCEL_TEST,
-        "name": "Cancel Test",
-        "icon": "mdi:cancel",
-        "method": "cancel_test",
-        "category": EntityCategory.DIAGNOSTIC,
-    },
 ]
 
 
@@ -93,7 +86,7 @@ class GreencellButton(CoordinatorEntity[GreencellCoordinator], ButtonEntity):
             raise HomeAssistantError(f"Command {self._conf['key']} not available")
         try:
             await method()
-            await self.coordinator.async_refresh_current_parameters()
+            await self.coordinator.async_refresh_current_parameters_with_delay(0.75)
         except GreencellApiError as err:
             self._log_activity(f"Command failed: {err}")
             raise HomeAssistantError(f"Command failed: {err}") from err

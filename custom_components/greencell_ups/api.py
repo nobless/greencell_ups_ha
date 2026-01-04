@@ -51,7 +51,7 @@ class GreencellApi:
 
         try:
             _LOGGER.debug("HTTP %s %s (json=%s)", method, path, bool(json))
-            async with async_timeout.timeout(10):
+            async with async_timeout.timeout(5):
                 async with active_session.request(
                     method,
                     f"{self._host}{path}",
@@ -65,13 +65,27 @@ class GreencellApi:
                     try:
                         resp.raise_for_status()
                     except aiohttp.ClientResponseError as err:
+                        _LOGGER.debug(
+                            "HTTP %s %s failed status=%s headers=%s",
+                            method,
+                            path,
+                            err.status,
+                            dict(resp.headers),
+                        )
                         raise GreencellRequestError(
                             f"HTTP error {err.status}: {err.message}"
                         ) from err
                     if expect_json:
                         try:
-                            return await resp.json()
+                            data = await resp.json()
+                            _LOGGER.debug(
+                                "HTTP %s %s JSON OK headers=%s", method, path, dict(resp.headers)
+                            )
+                            return data
                         except Exception as err:
+                            _LOGGER.debug(
+                                "HTTP %s %s JSON decode failed headers=%s", method, path, dict(resp.headers)
+                            )
                             raise GreencellResponseError("Invalid JSON response") from err
                     else:
                         try:
@@ -84,8 +98,10 @@ class GreencellApi:
                             return stripped or text
             _LOGGER.debug("HTTP %s %s completed", method, path)
         except asyncio.TimeoutError as err:
+            _LOGGER.warning("HTTP %s %s timed out", method, path)
             raise GreencellRequestError("Request timed out") from err
         except aiohttp.ClientError as err:
+            _LOGGER.warning("HTTP %s %s client error: %s", method, path, err)
             raise GreencellRequestError("Request failed") from err
         finally:
             if close_session and hasattr(active_session, "close"):

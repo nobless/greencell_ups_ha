@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import timedelta
 from typing import Any
@@ -92,6 +93,8 @@ class GreencellCoordinator(DataUpdateCoordinator):
                 resolved_mac = await self._async_resolve_mac()
                 if resolved_mac:
                     self.mac_address = resolved_mac
+                elif self._debug_enabled:
+                    _LOGGER.warning("Could not auto-determine MAC for host %s", self.host)
             if self.specification is None:
                 try:
                     self.specification = await self.api.fetch_specification()
@@ -105,12 +108,31 @@ class GreencellCoordinator(DataUpdateCoordinator):
                         resolved_mac = await self._async_resolve_mac()
                         if resolved_mac:
                             self.mac_address = resolved_mac
+                        elif self._debug_enabled:
+                            _LOGGER.warning("Could not auto-determine MAC (after spec) for host %s", self.host)
+                    else:
+                        if not self._user_named:
+                            new_name = self._build_name_from_spec(self.specification)
+                            if new_name == self.device_name:
+                                if self._debug_enabled:
+                                    _LOGGER.warning(
+                                        "Could not derive a better auto-name from spec for host %s", self.host
+                                    )
+                            else:
+                                self.device_name = new_name
                 except Exception as err:
                     if self._debug_enabled:
                         _LOGGER.debug("Failed to fetch specification: %s", err)
+                return data
             elif not self._user_named:
                 # Keep name in sync if spec was already available
-                self.device_name = self._build_name_from_spec(self.specification)
+                new_name = self._build_name_from_spec(self.specification)
+                if new_name == self.device_name and self._debug_enabled:
+                    _LOGGER.warning(
+                        "Could not derive a better auto-name from spec for host %s", self.host
+                    )
+                else:
+                    self.device_name = new_name
             return data
         except GreencellApiError as err:
             raise UpdateFailed(err)
@@ -198,6 +220,14 @@ class GreencellCoordinator(DataUpdateCoordinator):
 
     async def async_refresh_current_parameters(self) -> None:
         """Fetch current parameters immediately and update coordinator data."""
+        return await self.async_refresh_current_parameters_with_delay()
+
+    async def async_refresh_current_parameters_with_delay(
+        self, delay: float = 0.0
+    ) -> None:
+        """Fetch current parameters with an optional delay to allow device state to settle."""
+        if delay > 0:
+            await asyncio.sleep(delay)
         try:
             data = await self.api.fetch_status()
             self.async_set_updated_data(data)
